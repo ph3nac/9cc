@@ -27,11 +27,19 @@ struct Token {
 // パーサが読み込むトークン列
 Token *token;
 
-// エラーを報告する関数
-// 標準出力して異常終了する
-void error(char *fmt, ...) {
+// 入力文字列
+char *user_input;
+
+// エラー箇所を報告
+/* // 標準出力して異常終了する */
+void error_at(char *loc, char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
+
+  int pos = loc - user_input;
+  fprintf(stderr, "%s\n", user_input);
+  fprintf(stderr, "%*s", pos, " "); // pos個の空白を出力
+  fprintf(stderr, "^ ");
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   exit(1);
@@ -52,7 +60,7 @@ bool consume(char op) {
 // トークンを直接触る(副作用あり)
 void expect(char op) {
   if (token->kind != TK_RESERVED || token->str[0] != op)
-    error("'%c'ではありません", op);
+    error_at(token->str, "'%c'ではありません", op);
   token = token->next;
 }
 
@@ -61,7 +69,7 @@ void expect(char op) {
 // トークンを直接触る(副作用あり)
 int expect_number() {
   if (token->kind != TK_NUM)
-    error("数値ではありません");
+    error_at(token->str, "数値ではありません");
   int val = token->val;
   token = token->next;
   return val;
@@ -103,7 +111,7 @@ Token *tokenize(char *p) {
       cur->val = strtol(p, &p, 10);
       continue;
     }
-    error("トークナイズできません");
+    error_at(token->str, "トークナイズできません");
   }
   new_token(TK_EOF, cur, p);
   return head.next;
@@ -115,6 +123,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  user_input = argv[1];
   // tokenize
   token = tokenize(argv[1]);
 
